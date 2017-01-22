@@ -1,88 +1,47 @@
 package com.codecommit.antixml
 
-import monocle.function.Index
-import monocle.macros.GenLens
-import monocle.{Lens, Optional, Prism}
+import monocle.{Traversal, _}
 
 import scala.language.{dynamics, higherKinds}
+import scalaz.Applicative
 
-object NodeOptics extends App {
-  final lazy val node2elem: Prism[Node, Elem] = {
-    Prism.partial[Node, Elem] { case e: Elem => e }(identity)
-  }
+object NodeOptics {
 
-  final lazy val gnode2gelem: Prism[Group[Node], Group[Elem]] = {
-    Prism[Group[Node], Group[Elem]](gn => Some(gn.collect { case e: Elem => e }))(identity)
-  }
+  // traversal from an elem to its elem children
+  final lazy val eachChild: Traversal[Elem, Elem] = eachChild(None)
 
-  final lazy val elem2Children: Lens[Elem, Group[Node]] = GenLens[Elem](_.children)
+  // traversal from an elem to its elem children with a certain label
+  final def eachChild(field: Option[String]): Traversal[Elem, Elem] = new Traversal[Elem, Elem] {
+    override def modifyF[F[_]](f: Elem => F[Elem])(e: Elem)(implicit F: Applicative[F]): F[Elem] = {
 
-  final lazy val elem2ElemChildren: Optional[Elem, Group[Elem]] = elem2Children.composePrism(gnode2gelem)
+      // lift the f to be Node => F[Node]
+      val n2Fn: Node => F[Node] = {
+        case e: Elem if field.isEmpty || field.contains(e.name) => F.map(f(e))(identity[Node]) // f and upcast to Node
+        case x => F.pure(x) // just leave others as they are
+      }
 
-  final def gelem2elem(name: String): Optional[Group[Elem], Elem] = {
-    Optional[Group[Elem], Elem](_.find(_.name == name))(e => ge => ge.filterNot(_.name == name).+:(e))
-  }
-
-  final lazy val elem2Label: Lens[Elem, String] = GenLens[Elem](_.name)
-
-  final lazy val node2Children: Optional[Node, Group[Node]] = node2elem.composeLens(elem2Children)
-
-  final lazy val node2ElemChildren: Optional[Node, Group[Elem]] = node2Children.composePrism(gnode2gelem)
-
-  implicit val gIndex = new Index[Group[Elem], String, Group[Elem]] {
-    override def index(name: String): Optional[Group[Elem], Group[Elem]] = {
-      Optional[Group[Elem], Group[Elem]](ge => Some(ge.filter(_.name == name)))(ge => gei => ge)
+      e.traverse[F](n2Fn)
     }
   }
 
 }
 
-final case class XMLPathChildren(elem: Optional[Elem, Group[Elem]]) extends Dynamic {
+final case class XMLTraversalPath(e: Traversal[Elem, Elem]) extends Dynamic {
 
   import NodeOptics._
 
-  def selectDynamic(field: String): XMLPath = XMLPath(elem.composeOptional(gelem2elem(field)))
+  def selectDynamic(label: String): XMLTraversalPath = XMLTraversalPath(e.composeTraversal(eachChild(Some(label))))
 
-  def modifyEach(f: Elem => Elem)(input: Elem): Option[Elem] = elem.modifyOption(_.map(f))(input)
+  def each = XMLTraversalPath(e.composeTraversal(eachChild))
 
-  def modifyEachOpt(f: Elem => Option[Elem])(input: Elem): Option[Elem] = {
-    elem.modifyOption(_.map(e => f(e).fold(e)(identity)))(input)
-  }
+  def modify(f: Elem => Elem)(input: Elem): Elem = e.modify(f)(input)
 
-  def set(elemToSet: Elem)(input: Elem): Option[Elem] = modifyEach(_ => elemToSet)(input)
+  def getAll(input: Elem): List[Elem] = e.getAll(input)
 
-  def add(elemToSet: Elem)(input: Elem): Option[Elem] = {
-    val fn = Optional[Group[Elem], Group[Elem]](ge => Some(ge.+:(elemToSet)))(gei => ge => gei)
+  def set(substitute: Elem)(input: Elem): Elem = e.set(substitute)(input)
 
-    elem.composeOptional(fn)
-      .getOption(input)
-      .map(updated => elem.set(updated)(input))
-  }
-
-  def getOption(input: Elem): Option[Group[Elem]] = elem.getOption(input)
-}
-
-final case class XMLPath(elem: Optional[Elem, Elem]) {
-
-  import NodeOptics._
-
-  lazy val children: XMLPathChildren = XMLPathChildren(elem.composeOptional(elem2ElemChildren))
-
-  def find(child: String): XMLPath = children.selectDynamic(child)
-
-  def modify(f: Elem => Elem)(input: Elem): Option[Elem] = {
-    val fn = Optional[Elem, Elem](e => Some(f(e)))(ei => e => ei)
-
-    elem.composeOptional(fn)
-      .getOption(input)
-      .map(updated => elem.set(updated)(input))
-  }
-
-  def set(elemToSet: Elem)(input: Elem): Option[Elem] = modify(_ => elemToSet)(input)
-
-  def getOption(input: Elem): Option[Elem] = elem.getOption(input)
 }
 
 object XMLPath {
-  val root: XMLPath = XMLPath(Optional.id[Elem])
+  val root: XMLTraversalPath = XMLTraversalPath(Optional.id[Elem].asTraversal)
 }

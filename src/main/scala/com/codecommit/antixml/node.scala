@@ -255,7 +255,6 @@ case class Elem(prefix: Option[String], name: String, attrs: Attributes = Attrib
 
   def addNamespace(uri: String) = copy(namespaces = namespaces.append(uri))
 
-  // TODO
   def traverse[F[_]](f: Node => F[Node])(implicit F: Applicative[F]): F[Elem] = {
     F.map(
       children.foldLeft(F.pure(Group.empty[Node])) {
