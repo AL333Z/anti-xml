@@ -195,6 +195,8 @@ case class Elem(prefix: Option[String], name: String, attrs: Attributes = Attrib
 
   def addAttributes(attrs: Seq[(QName, String)]) = copy(attrs = this.attrs ++ attrs)
 
+  def addAttribute(attr: (QName, String)) = addAttributes(Seq(attr))
+
   def removeAttribute(attr: QName) = removeAttributes(Seq(attr))
 
   def removeAttributes(attributes: Seq[QName]) = copy(attrs = attrs.filterNot(attr => attributes.contains(attr._1)))
