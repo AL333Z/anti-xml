@@ -30,6 +30,7 @@ package com.codecommit.antixml
 
 import scala.collection.immutable.{Iterable, Map}
 import scala.language.higherKinds
+import scala.util.Try
 import scalaz.{Applicative, Traverse}
 
 /**
@@ -230,6 +231,9 @@ case class Elem(prefix: Option[String], name: String, attrs: Attributes = Attrib
   def withAttributes(attrs: Attributes) = copy(attrs = attrs)
 
   def attr(name: QName) = attrs.get(name)
+
+  def requiredAttr(name: QName) =
+    Try(attrs.get(name).getOrElse(throw new RuntimeException(s"Missing ${name.name} attribute!")))
 
   def attr(fqname: FQName) = namespaces.collectFirst {
     case nb if (attrs.contains(QName(nb.prefix, fqname.local))) => attrs(QName(nb.prefix, fqname.local))
