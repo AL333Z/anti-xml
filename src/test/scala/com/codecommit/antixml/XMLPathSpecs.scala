@@ -145,6 +145,68 @@ class XMLPathSpecs extends Specification {
       res mustEqual input
     }
 
+    "modify a node in a nested child with index" in {
+      val input =
+        <A Attr="01234">
+          <B>
+            <C Attr="Yep"/>
+            <C Attr="Nope"/>
+          </B>
+        </A>.convert
+
+      val res = root.B.C(0).modify(_.addAttributes(Seq(("OtherAttr", "bar"))))(input)
+
+      res mustEqual
+        <A Attr="01234">
+          <B>
+            <C Attr="Yep" OtherAttr="bar"/>
+            <C Attr="Nope"/>
+          </B>
+        </A>.convert
+    }
+
+    "modify a very nested node with index" in {
+      val input =
+        <A Attr="01234">
+          <B>
+            <C/>
+            <C>
+              <D>
+                <E Attr="E0"/>
+                <E Attr="E1"/>
+              </D>
+              <D>
+              </D>
+              <D>
+                <E Attr="E0"/>
+              </D>
+            </C>
+          </B>
+        </A>
+          .convert
+
+      val res = root.B(0).C(1).D(2).E.modify(_.addAttributes(Seq(("OtherAttr", "bar"))))(input)
+
+      res mustEqual
+        <A Attr="01234">
+          <B>
+            <C/>
+            <C>
+              <D>
+                <E Attr="E0"/>
+                <E Attr="E1"/>
+              </D>
+              <D>
+              </D>
+              <D>
+                <E Attr="E0" OtherAttr="bar"/>
+              </D>
+            </C>
+          </B>
+        </A>
+          .convert
+    }
+
   }
 
 }

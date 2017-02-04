@@ -1,5 +1,6 @@
 package com.codecommit.antixml
 
+import monocle.function.{At, Index}
 import monocle.{Traversal, _}
 
 import scala.language.{dynamics, higherKinds}
@@ -24,19 +25,50 @@ object NodeOptics {
     }
   }
 
+  // FIXME maybe i can split the "select all the elem children with a given name" and the "select the nth child" parts
+  implicit final val at: At[Elem, (String, Int), Option[Elem]] = new At[Elem, (String, Int), Option[Elem]] {
+    override def at(i: (String, Int)): Lens[Elem, Option[Elem]] = {
+      Lens[Elem, Option[Elem]] { e =>
+        e.children.foldLeft((0, None: Option[Elem])) {
+          case ((_, Some(found)), _) => (0, Some(found))
+          case ((curIdx, None), cur: Elem) if cur.name == i._1 && curIdx == i._2 => (0, Some(cur))
+          case ((curIdx, None), cur: Elem) if cur.name == i._1 => (curIdx + 1, None)
+          case ((curIdx, None), _) => (curIdx, None)
+        }._2
+      } { oe =>
+        e =>
+          e.copy(children =
+            Group.fromSeq(
+              e.children.foldLeft((0, false, Seq(): Seq[Node])) {
+                case ((_, true, acc), cur) => (0, true, acc.:+(cur))
+                case ((curIdx, false, acc), cur: Elem) if cur.name == i._1 && curIdx == i._2 => (0, true, oe.fold(acc)(acc.:+(_)))
+                case ((curIdx, false, acc), cur: Elem) if cur.name == i._1 => (curIdx + 1, false, acc.:+(cur))
+                case ((curIdx, false, acc), cur) => (curIdx, false, acc.:+(cur))
+              }._3
+            )
+          )
+      }
+    }
+  }
+
+  implicit final val idx: Index[Elem, (String, Int), Elem] = Index.fromAt[Elem, (String, Int), Elem]
 }
 
 final case class XMLTraversalPath(e: Traversal[Elem, Elem]) extends Dynamic {
 
   import NodeOptics._
 
-  def selectDynamic(label: String): XMLTraversalPath = XMLTraversalPath(e.composeTraversal(eachChild(Some(label))))
+  def selectDynamic(lbl: String): XMLTraversalPath = XMLTraversalPath(e.composeTraversal(eachChild(Some(lbl))))
+
+  def applyDynamic(lbl: String)(i: Int): XMLTraversalPath = XMLTraversalPath(e.composeOptional(Index.index((lbl, i))))
 
   def each = XMLTraversalPath(e.composeTraversal(eachChild))
 
   def modify(f: Elem => Elem)(input: Elem): Elem = e.modify(f)(input)
 
   def getAll(input: Elem): List[Elem] = e.getAll(input)
+
+  def headOption(input: Elem): Option[Elem] = e.headOption(input)
 
   def set(substitute: Elem)(input: Elem): Elem = e.set(substitute)(input)
 
