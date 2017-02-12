@@ -28,11 +28,15 @@ object NodeOptics {
   // FIXME maybe i can split the "select all the elem children with a given name" and the "select the nth child" parts
   implicit final val at: At[Elem, (String, Int), Option[Elem]] = new At[Elem, (String, Int), Option[Elem]] {
     override def at(i: (String, Int)): Lens[Elem, Option[Elem]] = {
+
+      def eqName(elem: Elem) = elem.name == i._1
+      def eqIdx(idx: Int) = idx == i._2
+
       Lens[Elem, Option[Elem]] { e =>
         e.children.foldLeft((0, None: Option[Elem])) {
           case ((_, Some(found)), _) => (0, Some(found))
-          case ((curIdx, None), cur: Elem) if cur.name == i._1 && curIdx == i._2 => (0, Some(cur))
-          case ((curIdx, None), cur: Elem) if cur.name == i._1 => (curIdx + 1, None)
+          case ((curIdx, None), cur: Elem) if eqName(cur) && eqIdx(curIdx) => (0, Some(cur))
+          case ((curIdx, None), cur: Elem) if eqName(cur) => (curIdx + 1, None)
           case ((curIdx, None), _) => (curIdx, None)
         }._2
       } { oe =>
@@ -41,9 +45,9 @@ object NodeOptics {
             Group.fromSeq(
               e.children.foldLeft((0, false, Seq(): Seq[Node])) {
                 case ((_, true, acc), cur) => (0, true, acc.:+(cur))
-                case ((curIdx, false, acc), cur: Elem) if cur.name == i._1 && curIdx == i._2 => (0, true, oe.fold(acc)(acc.:+(_)))
-                case ((curIdx, false, acc), cur: Elem) if cur.name == i._1 => (curIdx + 1, false, acc.:+(cur))
-                case ((curIdx, false, acc), cur) => (curIdx, false, acc.:+(cur))
+                case ((curIdx, _, acc), cur: Elem) if eqName(cur) && eqIdx(curIdx) => (0, true, oe.fold(acc)(acc.:+(_)))
+                case ((curIdx, _, acc), cur: Elem) if eqName(cur) => (curIdx + 1, false, acc.:+(cur))
+                case ((curIdx, _, acc), cur) => (curIdx, false, acc.:+(cur))
               }._3
             )
           )
