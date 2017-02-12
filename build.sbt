@@ -141,3 +141,7 @@ releaseProcess := Seq(
   ReleaseStep(action = Command.process("sonatypeReleaseAll", _), enableCrossBuild = true),
   pushChanges
 )
+
+tutSettings
+
+tutTargetDirectory := baseDirectory.value
