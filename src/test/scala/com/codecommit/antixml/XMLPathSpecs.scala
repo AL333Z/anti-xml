@@ -207,6 +207,88 @@ class XMLPathSpecs extends Specification {
           .convert
     }
 
+    "filter" in {
+      val input =
+        <A Attr="01234">
+          <B>
+            <C/>
+            <C>
+              <D>
+                <E Attr="E0"/>
+                <E Attr="E1"/>
+              </D>
+              <D>
+              </D>
+              <D>
+                <E Attr="E0"/>
+              </D>
+            </C>
+          </B>
+        </A>
+          .convert
+
+      val res = root.B(0).C(1).D(0).E.filter(_.attr("Attr").contains("E1"))(input)
+
+      res mustEqual
+        <A Attr="01234">
+          <B>
+            <C/>
+            <C>
+              <D>
+                <E Attr="E1"/>
+              </D>
+              <D>
+              </D>
+              <D>
+                <E Attr="E0"/>
+              </D>
+            </C>
+          </B>
+        </A>
+          .convert
+    }
+
+    "filterNot" in {
+      val input =
+        <A Attr="01234">
+          <B>
+            <C/>
+            <C>
+              <D>
+                <E Attr="E0"/>
+                <E Attr="E1"/>
+              </D>
+              <D>
+              </D>
+              <D>
+                <E Attr="E0"/>
+              </D>
+            </C>
+          </B>
+        </A>
+          .convert
+
+      val res = root.B(0).C(1).D(0).E.filterNot(_.attr("Attr").contains("E1"))(input)
+
+      res mustEqual
+        <A Attr="01234">
+          <B>
+            <C/>
+            <C>
+              <D>
+                <E Attr="E0"/>
+              </D>
+              <D>
+              </D>
+              <D>
+                <E Attr="E0"/>
+              </D>
+            </C>
+          </B>
+        </A>
+          .convert
+    }
+
   }
 
 }

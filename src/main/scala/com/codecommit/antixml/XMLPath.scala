@@ -70,6 +70,12 @@ final case class XMLTraversalPath(e: Traversal[Elem, Elem]) extends Dynamic {
 
   def modify(f: Elem => Elem)(input: Elem): Elem = e.modify(f)(input)
 
+  // TODO
+  def filter(pred: Elem => Boolean)(input: Elem): Elem = e.modify(identity)(input)
+
+  // TODO
+  def filterNot(pred: Elem => Boolean)(input: Elem): Elem = e.modify(identity)(input)
+
   def modifyF[F[_] : Applicative](f: Elem => F[Elem])(input: Elem): F[Elem] = e.modifyF[F](f)(input)
 
   def getAll(input: Elem): List[Elem] = e.getAll(input)
