@@ -1,40 +1,58 @@
-anti-xml + Monocle = XMLPath
-============================
+XMLPath - A Scala typesafe XML dsl
+====================================
 
-Why?
-====
+Topics
+------
 
-scala-xml is not good enought
------------------------------
+- anti-xml, a scala-xml replacement
+- monocle (lens and other optics), aka how to get/set/update immutable data structures
+- scala dynamics, an unknown language feature
 
-- unintuitive api to update an xml hierarchy
+The problem
+------------
+
+Typesafe xml manipulation, without boilerplate.
+
+Out of scope
+-------------
+
+Parsing.
+This session will cover only XML to XML transformations.
+
+What's wrong with plain scala.xml?
+====================================
+
+- unintuitive api, especially when you neeed to update an elem
+  - [SO: Modifying nested elements in xml](http://stackoverflow.com/questions/970675/scala-modifying-nested-elements-in-xml)
+  - [SO: How to change attribute on Scala XML Element](http://stackoverflow.com/questions/2569580/how-to-change-attribute-on-scala-xml-element)
 - unfriendly type hierarchy
-
-![](http://www.codecommit.com/blog/wp-content/uploads/2010/05/s6EW-5XuGuUAjHDi-zmvofQ.png)
+- not so typesafe
 
 anti-xml, just why?
 ===================
 
-- cleaner ADT:
-
-```haskell
-  type Prefix = Maybe String
-  type Scope = Map String String
-
-  data Node = ProcInstr String String
-            | Elem Prefix String Attributes Scope (Group Node)
-            | Text String
-            | CDATA String
-            | EntityRef String
-```
-
-- Zippers to navigate the document (they're cool, but out of topic in this session)
-- More type-safety
-- Original author [Daniel Spiewak](https://github.com/djspiewak)
+- The original author is [Daniel Spiewak](https://github.com/djspiewak)
 - I forked from [this other fork](https://github.com/arktekk/anti-xml), bumped to Scala 2.11 and started experimenting
 
-Monocle - Optics
-================
+- Provide abstractions to declaratively navigate the document: Zippers (cool, but out of topic in this session)
+- More type-safety: Options, etc.. provide explicit informations about what to expect
+- cleaner/simpler ADT:
+
+```scala
+    sealed trait Node
+    case class ProcInstr(target: String, data: String) extends Node
+    case class Elem(prefix: Option[String], name: String, attrs: Attributes, namespaces: NamespaceBinding, children: Group[Node]) extends Node
+    case class Text(text: String) extends Node
+    case class CDATA(text: String) extends Node
+    case class EntityRef(entity: String) extends Node
+```
+
+Nice, but we're talking about manipulations..
+
+Monocle
+=======
+
+A set of typeclasses that let us get/set/update immutable data structures.
 
 ![](https://raw.github.com/julien-truffaut/Monocle/master/image/class-diagram.png)
 
@@ -51,52 +69,53 @@ object Lens {
 
 A Lens is an optic used to zoom inside a Product, e.g. case class.
 
+
+
+
+Let's define some adt
+
 ```scala
-scala> import monocle.Lens
-import monocle.Lens
+case class Address(number: Int, streetName: String)
+case class Person(name: String, age: Int, address: Address)
 
-scala> import monocle.macros.GenLens
-import monocle.macros.GenLens
+val address = Address(10, "High Street")
+val john = Person("John", 20, address)
+```
 
-scala> case class Address(number: Int, streetName: String)
-defined class Address
+And profit with them..
 
-scala> val streetNumber = Lens[Address, Int](_.number)(n => a => a.copy(number = n))
-streetNumber: monocle.Lens[Address,Int] = monocle.PLens$$anon$7@61c9e5ea
+```scala
+scala> val address2streetNumber = Lens[Address, Int](_.number)(n => a => a.copy(number = n))
+address2streetNumber: monocle.Lens[Address,Int] = monocle.PLens$$anon$7@94c0df4
 
-scala> // or  GenLens[Address](_.number)
-     | 
-     | val address = Address(10, "High Street")
-address: Address = Address(10,High Street)
+scala> val address2streetNumber2 = GenLens[Address](_.number)
+address2streetNumber2: monocle.Lens[Address,Int] = $anon$1@5a82d1cc
 
-scala> streetNumber.get(address)
-res2: Int = 10
+scala> address2streetNumber.get(address)
+res1: Int = 10
 
-scala> streetNumber.set(5)(address)
-res3: Address = Address(5,High Street)
+scala> address2streetNumber.set(5)(address)
+res2: Address = Address(5,High Street)
 
-scala> streetNumber.modify(_ + 1)(address)
-res4: Address = Address(11,High Street)
+scala> address2streetNumber.modify(_ + 1)(address)
+res3: Address = Address(11,High Street)
 ```
 
 Lens composition
 ----------------
 
 ```scala
-scala> case class Person(name: String, age: Int, address: Address)
-defined class Person
+scala> val person2address = GenLens[Person](_.address)
+person2address: monocle.Lens[Person,Address] = $anon$1@4341d0b3
 
-scala> val john = Person("John", 20, address)
-john: Person = Person(John,20,Address(10,High Street))
+scala> val person2StreetNumber = person2address composeLens address2streetNumber
+person2StreetNumber: monocle.PLens[Person,Person,Int,Int] = monocle.PLens$$anon$1@3d2fec2a
 
-scala> val address = GenLens[Person](_.address)
-address: monocle.Lens[Person,Address] = $anon$1@26a422d3
+scala> person2StreetNumber.get(john)
+res4: Int = 10
 
-scala> (address composeLens streetNumber).get(john)
-res5: Int = 10
-
-scala> (address composeLens streetNumber).set(2)(john)
-res6: Person = Person(John,20,Address(2,High Street))
+scala> person2StreetNumber.set(2)(john)
+res5: Person = Person(John,20,Address(2,High Street))
 ```
 
 Optional
@@ -121,41 +140,36 @@ object Prism {
 }
 ```
 
+
+
+
+Let's define a simple hierarchy
+
 ```scala
-scala> sealed trait Json
-defined trait Json
+sealed trait Json
+case object JNull extends Json
+case class JStr(v: String) extends Json
+case class JNum(v: Double) extends Json
+case class JObj(v: Map[String, Json]) extends Json
+```
 
-scala> case object JNull extends Json
-defined object JNull
+And have some fun..
 
-scala> case class JStr(v: String) extends Json
-defined class JStr
-
-scala> case class JNum(v: Double) extends Json
-defined class JNum
-
-scala> case class JObj(v: Map[String, Json]) extends Json
-defined class JObj
-
-scala> import monocle.Prism
-import monocle.Prism
-
+```scala
 scala> val jStr = Prism[Json, String]{
      |   case JStr(v) => Some(v)
      |   case _       => None
      | }(JStr)
-jStr: monocle.Prism[Json,String] = monocle.Prism$$anon$7@ee5a615
+jStr: monocle.Prism[Json,String] = monocle.Prism$$anon$7@14747447
 
-scala> // or Prism.partial[Json, String]{case JStr(v) => v}(JStr)
-     | 
-     | jStr("hello")
-res9: Json = JStr(hello)
+scala> jStr("hello")
+res6: Json = JStr(hello)
 
 scala> jStr.getOption(JStr("Hello"))
-res10: Option[String] = Some(Hello)
+res7: Option[String] = Some(Hello)
 
 scala> jStr.getOption(JNum(3.2))
-res11: Option[String] = None
+res8: Option[String] = None
 ```
 
 Traversal
@@ -166,24 +180,24 @@ In other word, a Traversal allows to focus from a type S into 0 to n values of t
 
 The most common example of a Traversal would be to focus into all elements inside of a container (List, Option, ...). 
 
-```scala
-scala> import monocle.Traversal
-import monocle.Traversal
 
+
+
+```scala
 scala> import scalaz.std.list._   // to get the Traverse instance for List
 import scalaz.std.list._
 
 scala> val xs = List(1,2,3,4,5)
 xs: List[Int] = List(1, 2, 3, 4, 5)
 
-scala> val eachL = Traversal.fromTraverse[List, Int]
-eachL: monocle.Traversal[List[Int],Int] = monocle.PTraversal$$anon$5@2e7e596b
+scala> val eachNumber = Traversal.fromTraverse[List, Int]
+eachNumber: monocle.Traversal[List[Int],Int] = monocle.PTraversal$$anon$5@5fad6bb0
 
-scala> eachL.set(0)(xs)
-res12: List[Int] = List(0, 0, 0, 0, 0)
+scala> eachNumber.set(0)(xs)
+res9: List[Int] = List(0, 0, 0, 0, 0)
 
-scala> eachL.modify(_ + 1)(xs)
-res13: List[Int] = List(2, 3, 4, 5, 6)
+scala> eachNumber.modify(_ + 1)(xs)
+res10: List[Int] = List(2, 3, 4, 5, 6)
 ```
 
 XMLPath
@@ -192,7 +206,8 @@ XMLPath
 - A simple-but-powerful DSL to manipulate an XML
 - Supporting only `Elem` manipulation (no `ProcInstr`, `Text`, `CDATA`, `EntityRef`)
 - Typesafe
-- Inspired by Circe/JsonPath by Julien Truffaut ![](https://julien-truffaut.github.io/jsonpath.pres/#1)
+- Inspired by [Circe/JsonPath](https://julien-truffaut.github.io/jsonpath.pres/#1) by Julien Truffaut
+- Let's you access/manipulate a Json using a simple dsl
 
 Illumination
 ------------
@@ -214,10 +229,7 @@ Samples
 =======
 
 ```scala
-scala> import com.codecommit.antixml.XMLPath._
 import com.codecommit.antixml.XMLPath._
-
-scala> import com.codecommit.antixml._
 import com.codecommit.antixml._
 ```
 
@@ -225,23 +237,21 @@ Get all children
 ----------------
 
 ```scala
-scala> val input1 =
-     |   <A Attr="01234">
-     |     <B>
-     |       <C Attr="C"></C>
-     |       <C Attr="C"></C>
-     |     </B>
-     |   </A>.convert
-input1: com.codecommit.antixml.Elem =
-<A Attr="01234">
+val input1 =
+  <A Attr="01234">
     <B>
-      <C Attr="C"/>
-      <C Attr="C"/>
+      <C Attr="C"></C>
+      <C Attr="C"></C>
     </B>
-  </A>
+    <B>
+      <C Attr="C1"></C>
+    </B>
+  </A>.convert
+```
 
+```scala
 scala> root.B.C.getAll(input1)
-res14: List[com.codecommit.antixml.Elem] = List(<C Attr="C"/>, <C Attr="C"/>)
+res11: List[com.codecommit.antixml.Elem] = List(<C Attr="C"/>, <C Attr="C"/>, <C Attr="C1"/>)
 ```
 
 Return nothing if the selected nested child is missing
@@ -249,23 +259,23 @@ Return nothing if the selected nested child is missing
 
 ```scala
 scala> root.B.Missing.getAll(input1)
-res15: List[com.codecommit.antixml.Elem] = List()
+res12: List[com.codecommit.antixml.Elem] = List()
+```
 
-scala> // set a node multiple times"
-     | 
-     | val input2 =
-     |   <A Attr="01234">
-     |     <B>B</B>
-     |     <B>B</B>
-     |   </A>.convert
-input2: com.codecommit.antixml.Elem =
-<A Attr="01234">
+set a node multiple times
+--------------------------
+
+```scala
+val input2 =
+  <A Attr="01234">
     <B>B</B>
     <B>B</B>
-  </A>
+  </A>.convert
+```
 
+```scala
 scala> root.B.set(<Other/>.convert)(input2)
-res18: com.codecommit.antixml.Elem =
+res13: com.codecommit.antixml.Elem =
 <A Attr="01234">
     <Other/>
     <Other/>
@@ -276,52 +286,18 @@ Modify a node in a nested child
 -------------------------------
 
 ```scala
-scala> val input3 =
-     |   <A Attr="01234">
-     |     <B>
-     |       <C Attr="Yep"/>
-     |       <C Attr="Nope"/>
-     |     </B>
-     |   </A>.convert
-input3: com.codecommit.antixml.Elem =
-<A Attr="01234">
+val input3 =
+  <A Attr="01234">
     <B>
       <C Attr="Yep"/>
       <C Attr="Nope"/>
     </B>
-  </A>
+  </A>.convert
+```
 
+```scala
 scala> val res = root.B.C.modify(_.addAttributes(Seq(("OtherAttr", "bar"))))(input3)
 res: com.codecommit.antixml.Elem =
-<A Attr="01234">
-    <B>
-      <C Attr="Yep" OtherAttr="bar"/>
-      <C Attr="Nope" OtherAttr="bar"/>
-    </B>
-  </A>
-```
-
-Modify a node in a nested child
--------------------------------
-
-```scala
-scala> val input4 =
-     |   <A Attr="01234">
-     |     <B>
-     |       <C Attr="Yep"/>
-     |       <C Attr="Nope"/>
-     |     </B>
-     |   </A>.convert
-input4: com.codecommit.antixml.Elem =
-<A Attr="01234">
-    <B>
-      <C Attr="Yep"/>
-      <C Attr="Nope"/>
-    </B>
-  </A>
-
-scala> root.B.C.modify(_.addAttributes(Seq(("OtherAttr", "bar"))))(input4)
-res19: com.codecommit.antixml.Elem =
 <A Attr="01234">
     <B>
       <C Attr="Yep" OtherAttr="bar"/>
@@ -334,17 +310,15 @@ Modify a missing node
 ---------------------
 
 ```scala
-scala> val input5 =
-     |   <A Attr="01234">
-     |     <C></C>
-     |   </A>.convert
-input5: com.codecommit.antixml.Elem =
-<A Attr="01234">
-    <C/>
-  </A>
+val input5 =
+  <A Attr="01234">
+    <C></C>
+  </A>.convert
+```
 
+```scala
 scala> root.Missing.modify(_.addAttributes(Seq(("OrderLinesAttr", "hello"))))(input5)
-res20: com.codecommit.antixml.Elem =
+res14: com.codecommit.antixml.Elem =
 <A Attr="01234">
     <C/>
   </A>
@@ -354,25 +328,8 @@ Modify a nested node with index
 ------------------------------------
 
 ```scala
-scala> val input6 =
-     |   <A Attr="01234">
-     |     <B>
-     |       <C/>
-     |       <C>
-     |         <D>
-     |           <E Attr="E0"/>
-     |           <E Attr="E1"/>
-     |         </D>
-     |         <D>
-     |         </D>
-     |         <D>
-     |           <E Attr="E0"/>
-     |         </D>
-     |       </C>
-     |     </B>
-     |   </A>.convert
-input6: com.codecommit.antixml.Elem =
-<A Attr="01234">
+val input6 =
+  <A Attr="01234">
     <B>
       <C/>
       <C>
@@ -387,10 +344,12 @@ input6: com.codecommit.antixml.Elem =
         </D>
       </C>
     </B>
-  </A>
+  </A>.convert
+```
 
+```scala
 scala> root.B(0).C(1).D(2).E.modify(_.addAttributes(Seq(("OtherAttr", "bar"))))(input6)
-res21: com.codecommit.antixml.Elem =
+res15: com.codecommit.antixml.Elem =
 <A Attr="01234">
     <B>
       <C/>
@@ -412,8 +371,7 @@ res21: com.codecommit.antixml.Elem =
 References
 ==========
 
-- On maven central -> "com.al333z" %% "anti-xml" % "0.7.5"
-
+- On maven central -> `"com.al333z" %% "anti-xml" % "0.7.5"`
 - [anti-xml fork](https://github.com/AL333Z/anti-xml)
 - [Monocle](https://github.com/julien-truffaut/Monocle)
 - [Circe/JsonPath](https://github.com/circe/circe)

@@ -1,40 +1,58 @@
-anti-xml + Monocle = XMLPath
-============================
+XMLPath - A Scala typesafe XML dsl
+====================================
 
-Why?
-====
+Topics
+------
 
-scala-xml is not good enought
------------------------------
+- anti-xml, a scala-xml replacement
+- monocle (lens and other optics), aka how to get/set/update immutable data structures
+- scala dynamics, an unknown language feature
 
-- unintuitive api to update an xml hierarchy
+The problem
+------------
+
+Typesafe xml manipulation, without boilerplate.
+
+Out of scope
+-------------
+
+Parsing.
+This session will cover only XML to XML transformations.
+
+What's wrong with plain scala.xml?
+====================================
+
+- unintuitive api, especially when you neeed to update an elem
+  - [SO: Modifying nested elements in xml](http://stackoverflow.com/questions/970675/scala-modifying-nested-elements-in-xml)
+  - [SO: How to change attribute on Scala XML Element](http://stackoverflow.com/questions/2569580/how-to-change-attribute-on-scala-xml-element)
 - unfriendly type hierarchy
-
-![](http://www.codecommit.com/blog/wp-content/uploads/2010/05/s6EW-5XuGuUAjHDi-zmvofQ.png)
+- not so typesafe
 
 anti-xml, just why?
 ===================
 
-- cleaner ADT:
-
-```haskell
-  type Prefix = Maybe String
-  type Scope = Map String String
-
-  data Node = ProcInstr String String
-            | Elem Prefix String Attributes Scope (Group Node)
-            | Text String
-            | CDATA String
-            | EntityRef String
-```
-
-- Zippers to navigate the document (they're cool, but out of topic in this session)
-- More type-safety
-- Original author [Daniel Spiewak](https://github.com/djspiewak)
+- The original author is [Daniel Spiewak](https://github.com/djspiewak)
 - I forked from [this other fork](https://github.com/arktekk/anti-xml), bumped to Scala 2.11 and started experimenting
 
-Monocle - Optics
-================
+- Provide abstractions to declaratively navigate the document: Zippers (cool, but out of topic in this session)
+- More type-safety: Options, etc.. provide explicit informations about what to expect
+- cleaner/simpler ADT:
+
+```scala
+    sealed trait Node
+    case class ProcInstr(target: String, data: String) extends Node
+    case class Elem(prefix: Option[String], name: String, attrs: Attributes, namespaces: NamespaceBinding, children: Group[Node]) extends Node
+    case class Text(text: String) extends Node
+    case class CDATA(text: String) extends Node
+    case class EntityRef(entity: String) extends Node
+```
+
+Nice, but we're talking about manipulations..
+
+Monocle
+=======
+
+A set of typeclasses that let us get/set/update immutable data structures.
 
 ![](https://raw.github.com/julien-truffaut/Monocle/master/image/class-diagram.png)
 
@@ -51,33 +69,41 @@ object Lens {
 
 A Lens is an optic used to zoom inside a Product, e.g. case class.
 
-```tut
+```tut:invisible
 import monocle.Lens
 import monocle.macros.GenLens
+```
 
+Let's define some adt
+
+```tut:silent
 case class Address(number: Int, streetName: String)
-
-val streetNumber = Lens[Address, Int](_.number)(n => a => a.copy(number = n))
-// or  GenLens[Address](_.number)
+case class Person(name: String, age: Int, address: Address)
 
 val address = Address(10, "High Street")
-streetNumber.get(address)
-streetNumber.set(5)(address)
-streetNumber.modify(_ + 1)(address)
+val john = Person("John", 20, address)
+```
 
+And profit with them..
+
+```tut
+val address2streetNumber = Lens[Address, Int](_.number)(n => a => a.copy(number = n))
+val address2streetNumber2 = GenLens[Address](_.number)
+
+address2streetNumber.get(address)
+address2streetNumber.set(5)(address)
+address2streetNumber.modify(_ + 1)(address)
 ```
 
 Lens composition
 ----------------
 
 ```tut
-case class Person(name: String, age: Int, address: Address)
-val john = Person("John", 20, address)
+val person2address = GenLens[Person](_.address)
+val person2StreetNumber = person2address composeLens address2streetNumber
 
-val address = GenLens[Person](_.address)
-(address composeLens streetNumber).get(john)
-(address composeLens streetNumber).set(2)(john)
-
+person2StreetNumber.get(john)
+person2StreetNumber.set(2)(john)
 ```
 
 Optional
@@ -102,21 +128,27 @@ object Prism {
 }
 ```
 
-```tut
+```tut:invisible
+import monocle.Prism
+```
+
+Let's define a simple hierarchy
+
+```tut:silent
 sealed trait Json
 case object JNull extends Json
 case class JStr(v: String) extends Json
 case class JNum(v: Double) extends Json
 case class JObj(v: Map[String, Json]) extends Json
+```
 
-import monocle.Prism
+And have some fun..
 
+```tut
 val jStr = Prism[Json, String]{
   case JStr(v) => Some(v)
   case _       => None
 }(JStr)
-
-// or Prism.partial[Json, String]{case JStr(v) => v}(JStr)
 
 jStr("hello")
 jStr.getOption(JStr("Hello"))
@@ -131,15 +163,19 @@ In other word, a Traversal allows to focus from a type S into 0 to n values of t
 
 The most common example of a Traversal would be to focus into all elements inside of a container (List, Option, ...). 
 
-```tut
+```tut:invisible
 import monocle.Traversal
+```
+
+```tut
 import scalaz.std.list._   // to get the Traverse instance for List
 
 val xs = List(1,2,3,4,5)
 
-val eachL = Traversal.fromTraverse[List, Int]
-eachL.set(0)(xs)
-eachL.modify(_ + 1)(xs)
+val eachNumber = Traversal.fromTraverse[List, Int]
+
+eachNumber.set(0)(xs)
+eachNumber.modify(_ + 1)(xs)
 ```
 
 XMLPath
@@ -148,7 +184,8 @@ XMLPath
 - A simple-but-powerful DSL to manipulate an XML
 - Supporting only `Elem` manipulation (no `ProcInstr`, `Text`, `CDATA`, `EntityRef`)
 - Typesafe
-- Inspired by Circe/JsonPath by Julien Truffaut ![](https://julien-truffaut.github.io/jsonpath.pres/#1)
+- Inspired by [Circe/JsonPath](https://julien-truffaut.github.io/jsonpath.pres/#1) by Julien Truffaut
+- Let's you access/manipulate a Json using a simple dsl
 
 Illumination
 ------------
@@ -169,7 +206,7 @@ You're welcome.
 Samples
 =======
 
-```tut
+```tut:silent
 import com.codecommit.antixml.XMLPath._
 import com.codecommit.antixml._
 ```
@@ -177,15 +214,20 @@ import com.codecommit.antixml._
 Get all children
 ----------------
 
-```tut
+```tut:silent
 val input1 =
   <A Attr="01234">
     <B>
       <C Attr="C"></C>
       <C Attr="C"></C>
     </B>
+    <B>
+      <C Attr="C1"></C>
+    </B>
   </A>.convert
+```
 
+```tut
 root.B.C.getAll(input1)
 ```
 
@@ -194,22 +236,27 @@ Return nothing if the selected nested child is missing
 
 ```tut
 root.B.Missing.getAll(input1)
+```
 
-// set a node multiple times"
+set a node multiple times
+--------------------------
 
+```tut:silent
 val input2 =
   <A Attr="01234">
     <B>B</B>
     <B>B</B>
   </A>.convert
+```
 
+```tut
 root.B.set(<Other/>.convert)(input2)
 ```
 
 Modify a node in a nested child
 -------------------------------
 
-```tut
+```tut:silent
 val input3 =
   <A Attr="01234">
     <B>
@@ -217,42 +264,30 @@ val input3 =
       <C Attr="Nope"/>
     </B>
   </A>.convert
-
-val res = root.B.C.modify(_.addAttributes(Seq(("OtherAttr", "bar"))))(input3)
 ```
 
-Modify a node in a nested child
--------------------------------
-
 ```tut
-val input4 =
-  <A Attr="01234">
-    <B>
-      <C Attr="Yep"/>
-      <C Attr="Nope"/>
-    </B>
-  </A>.convert
-
-root.B.C.modify(_.addAttributes(Seq(("OtherAttr", "bar"))))(input4)
+val res = root.B.C.modify(_.addAttributes(Seq(("OtherAttr", "bar"))))(input3)
 ```
 
 Modify a missing node
 ---------------------
 
-```tut
+```tut:silent
 val input5 =
   <A Attr="01234">
     <C></C>
   </A>.convert
-   
+```
+
+```tut
 root.Missing.modify(_.addAttributes(Seq(("OrderLinesAttr", "hello"))))(input5)
 ```
 
 Modify a nested node with index
 ------------------------------------
 
-```tut
-
+```tut:silent
 val input6 =
   <A Attr="01234">
     <B>
@@ -270,15 +305,16 @@ val input6 =
       </C>
     </B>
   </A>.convert
+```
 
+```tut
 root.B(0).C(1).D(2).E.modify(_.addAttributes(Seq(("OtherAttr", "bar"))))(input6)
 ```
 
 References
 ==========
 
-- On maven central -> "com.al333z" %% "anti-xml" % "0.7.5"
-
+- On maven central -> `"com.al333z" %% "anti-xml" % "0.7.5"`
 - [anti-xml fork](https://github.com/AL333Z/anti-xml)
 - [Monocle](https://github.com/julien-truffaut/Monocle)
 - [Circe/JsonPath](https://github.com/circe/circe)
