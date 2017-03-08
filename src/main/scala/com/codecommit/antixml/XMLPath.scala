@@ -8,10 +8,8 @@ import scalaz.Applicative
 
 object NodeOptics {
 
-  // traversal from an elem to its elem children
   final lazy val eachChild: Traversal[Elem, Elem] = eachChild(None)
 
-  // traversal from an elem to its elem children with a certain label
   final def eachChild(field: Option[String]): Traversal[Elem, Elem] = new Traversal[Elem, Elem] {
     override def modifyF[F[_]](f: Elem => F[Elem])(e: Elem)(implicit F: Applicative[F]): F[Elem] = {
 
@@ -25,11 +23,12 @@ object NodeOptics {
     }
   }
 
-  // FIXME maybe i can split the "select all the elem children with a given name" and the "select the nth child" parts
   implicit final val at: At[Elem, (String, Int), Option[Elem]] = new At[Elem, (String, Int), Option[Elem]] {
+    // FIXME maybe i can split the "select all the elem children with a given name" and the "select the nth child" parts
     override def at(i: (String, Int)): Lens[Elem, Option[Elem]] = {
 
       def eqName(elem: Elem) = elem.name == i._1
+
       def eqIdx(idx: Int) = idx == i._2
 
       Lens[Elem, Option[Elem]] { e =>
