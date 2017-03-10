@@ -28,7 +28,6 @@ object NodeOptics {
     override def at(i: (String, Int)): Lens[Elem, Option[Elem]] = {
 
       def eqName(elem: Elem) = elem.name == i._1
-
       def eqIdx(idx: Int) = idx == i._2
 
       Lens[Elem, Option[Elem]] { e =>

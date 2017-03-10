@@ -10,10 +10,6 @@ import scalaz.Equal
 
 class XMLPathLawsSpecs extends Specification with ScalaCheck with XMLGenerators {
 
-  "elem 2 elem traversal" should {
-    "respect traversal laws" in TraversalTests(NodeOptics.eachChild).all
-  }
-
   implicit val groupNode = arbGroup[Node]
   implicit val groupElem = arbGroup[Elem]
 
@@ -56,4 +52,8 @@ class XMLPathLawsSpecs extends Specification with ScalaCheck with XMLGenerators 
 
   val numProcessors = Runtime.getRuntime.availableProcessors
   implicit val params: Parameters = set(workers = numProcessors * 2, maxSize = 25)
+
+  "elem 2 elem traversal" should {
+    "respect traversal laws" in TraversalTests(NodeOptics.eachChild).all
+  }
 }

@@ -11,6 +11,8 @@ name := "anti-xml"
 
 scalaVersion := "2.11.8"
 
+crossScalaVersions := Seq("2.10.6", "2.11.8", "2.12.1")
+
 organization := "com.al333z"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
@@ -22,10 +24,10 @@ licenses := Seq(("BSD", new URL("https://github.com/arktekk/anti-xml/blob/master
 homepage := Some(url("http://github.com/AL333Z/anti-xml"))
 
 libraryDependencies ++= Seq(
-  "org.scalacheck" %% "scalacheck" % "1.11.3" % "test",
-  "org.specs2" %% "specs2-core" % "3.8.6" % "test",
-  "org.specs2" %% "specs2-scalacheck" % "3.8.6" % "test",
-  "org.specs2" %% "specs2-matcher-extra" % "3.8.6" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.11.6" % "test",
+  "org.specs2" %% "specs2-core" % "3.8.9",
+  "org.specs2" %% "specs2-scalacheck" % "3.8.9" % "test",
+  "org.specs2" %% "specs2-matcher-extra" % "3.8.9" % "test",
   "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
   "com.github.julien-truffaut" %% "monocle-core" % "1.4.0",
   "com.github.julien-truffaut" %% "monocle-macro" % "1.4.0",
