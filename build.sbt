@@ -13,6 +13,8 @@ scalaVersion := "2.11.8"
 
 crossScalaVersions := Seq("2.11.8", "2.12.1")
 
+releaseCrossBuild := true
+
 organization := "com.al333z"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
