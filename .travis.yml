@@ -12,4 +12,4 @@ matrix:
     jdk: oraclejdk8
 
 script:
-   - travis_wait 40 sbt ++$TRAVIS_SCALA_VERSION test
+   - travis_wait 60 sbt ++$TRAVIS_SCALA_VERSION test
