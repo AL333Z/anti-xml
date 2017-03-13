@@ -1,7 +1,7 @@
 package com.codecommit.antixml
 
 import monocle.function.{At, Index}
-import monocle.{Traversal, _}
+import monocle.{Optional, Traversal, _}
 
 import scala.language.{dynamics, higherKinds}
 import scalaz.Applicative
@@ -9,6 +9,29 @@ import scalaz.Applicative
 object NodeOptics {
 
   final lazy val eachChild: Traversal[Elem, Elem] = eachChild(None)
+
+  final def filter(p: Elem => Boolean): Optional[Elem, Elem] = {
+
+    def compressNewLines(values: List[Node]): List[Node] = compressNewLinesTail(Nil, values)
+
+    def compressNewLinesTail(seen: List[Node], remaining: List[Node]): List[Node] = remaining match {
+      case Nil => seen
+      case Text(x) :: Text(y) :: xs if x.trim.isEmpty && x.trim == y.trim => compressNewLinesTail(seen, Text(y) :: xs)
+      case x :: xs => compressNewLinesTail(seen ::: List(x), xs)
+    }
+
+    // This is really ugly, i hope to clean this eventually
+    Optional[Elem, Elem] { x =>
+      Some(
+        x.withChildren(
+          x.children.filter {
+            case y: Elem => p(y)
+            case _ => true
+          }
+        )
+      )
+    }(a => _ => a.withChildren(Group(compressNewLines(a.children.toList): _*)))
+  }
 
   final def eachChild(field: Option[String]): Traversal[Elem, Elem] = new Traversal[Elem, Elem] {
     override def modifyF[F[_]](f: Elem => F[Elem])(e: Elem)(implicit F: Applicative[F]): F[Elem] = {
@@ -28,6 +51,7 @@ object NodeOptics {
     override def at(i: (String, Int)): Lens[Elem, Option[Elem]] = {
 
       def eqName(elem: Elem) = elem.name == i._1
+
       def eqIdx(idx: Int) = idx == i._2
 
       Lens[Elem, Option[Elem]] { e =>
@@ -68,11 +92,9 @@ final case class XMLTraversalPath(e: Traversal[Elem, Elem]) extends Dynamic {
 
   def modify(f: Elem => Elem)(input: Elem): Elem = e.modify(f)(input)
 
-  // TODO
-  def filter(pred: Elem => Boolean)(input: Elem): Elem = e.modify(identity)(input)
+  def filterChildren(pred: Elem => Boolean)(input: Elem): Elem = e.composeOptional(filter(pred)).modify(identity)(input)
 
-  // TODO
-  def filterNot(pred: Elem => Boolean)(input: Elem): Elem = e.modify(identity)(input)
+  def filterNotChildren(pred: Elem => Boolean)(input: Elem): Elem = filterChildren(pred.andThen(!_))(input)
 
   def modifyF[F[_] : Applicative](f: Elem => F[Elem])(input: Elem): F[Elem] = e.modifyF[F](f)(input)
 
