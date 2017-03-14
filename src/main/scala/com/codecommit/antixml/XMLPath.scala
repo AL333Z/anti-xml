@@ -11,15 +11,6 @@ object NodeOptics {
   final lazy val eachChild: Traversal[Elem, Elem] = eachChild(None)
 
   final def filter(p: Elem => Boolean): Optional[Elem, Elem] = {
-
-    def compressNewLines(values: List[Node]): List[Node] = compressNewLinesTail(Nil, values)
-
-    def compressNewLinesTail(seen: List[Node], remaining: List[Node]): List[Node] = remaining match {
-      case Nil => seen
-      case Text(x) :: Text(y) :: xs if x.trim.isEmpty && x.trim == y.trim => compressNewLinesTail(seen, Text(y) :: xs)
-      case x :: xs => compressNewLinesTail(seen ::: List(x), xs)
-    }
-
     // This is really ugly, i hope to clean this eventually
     Optional[Elem, Elem] { x =>
       Some(
@@ -30,7 +21,7 @@ object NodeOptics {
           }
         )
       )
-    }(a => _ => a.withChildren(Group(compressNewLines(a.children.toList): _*)))
+    }(a => _ => a.withChildren(a.children.compressNewLines))
   }
 
   final def eachChild(field: Option[String]): Traversal[Elem, Elem] = new Traversal[Elem, Elem] {

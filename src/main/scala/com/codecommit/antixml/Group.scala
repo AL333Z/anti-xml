@@ -297,6 +297,16 @@ class Group[+A <: Node] private[antixml] (private[antixml] val nodes: VectorCase
     
     result.asInstanceOf[Group[A]]       // ugly, but safe; type-checker doesn't understand catamorphism
   }
+
+  def compressNewLines: Group[A] = {
+    def compressNewLinesTail(seen: List[A], remaining: List[A]): List[A] = remaining match {
+      case Nil => seen
+      case Text(x) :: Text(y) :: xs if x.trim.isEmpty && x.trim == y.trim => compressNewLinesTail(seen, Text(y).asInstanceOf[A] :: xs)
+      case x :: xs => compressNewLinesTail(seen ::: List(x), xs)
+    }
+
+    Group.fromSeq(compressNewLinesTail(Nil, thisCollection.toList))
+  }
   
   /**
    * Efficient (and slightly tricky) overload of `updated` on parameters which are
