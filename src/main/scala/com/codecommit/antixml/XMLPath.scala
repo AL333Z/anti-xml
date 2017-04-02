@@ -8,8 +8,6 @@ import scalaz.Applicative
 
 object NodeOptics {
 
-  final lazy val eachChild: Traversal[Elem, Elem] = eachChild(None)
-
   final def filter(p: Elem => Boolean): Optional[Elem, Elem] = {
     // This is really ugly, i hope to clean this eventually
     Optional[Elem, Elem] { x =>
@@ -24,12 +22,20 @@ object NodeOptics {
     }(a => _ => a.withChildren(a.children.compressNewLines))
   }
 
+  final lazy val eachChild: Traversal[Elem, Elem] = eachChild(None)
+
   final def eachChild(field: Option[String]): Traversal[Elem, Elem] = new Traversal[Elem, Elem] {
     override def modifyF[F[_]](f: Elem => F[Elem])(e: Elem)(implicit F: Applicative[F]): F[Elem] = {
 
+//      val newElem = field.map(Node.isElemWithName)
+//        .map(e.children.exists)
+//        .filter(!_)
+//        .map(_ => e.addChild(Elem(field.get)))
+//        .getOrElse(e)
+
       // lift the f to be Node => F[Node]
       val n2Fn: Node => F[Node] = {
-        case e: Elem if field.isEmpty || field.contains(e.name) => F.map(f(e))(identity[Node]) // f and upcast to Node
+        case child: Elem if field.isEmpty || field.contains(child.name) => F.map(f(child))(identity[Node]) // f and upcast to Node
         case x => F.pure(x) // just leave others as they are
       }
 
@@ -95,6 +101,7 @@ final case class XMLTraversalPath(e: Traversal[Elem, Elem]) extends Dynamic {
 
   def set(substitute: Elem)(input: Elem): Elem = e.set(substitute)(input)
 
+  def addChild(child: Elem)(input: Elem): Elem = e.modify(_.addChild(child))(input)
 }
 
 object XMLPath {

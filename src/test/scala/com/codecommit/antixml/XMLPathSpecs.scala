@@ -56,8 +56,51 @@ class XMLPathSpecs extends Specification {
       root.B.Missing.getAll(input) mustEqual Nil
     }
 
-    "set a node" in {
-      val input = <A Attr="01234">
+    "add a child" in {
+      val input =
+        <A Attr="01234">
+          <B Attr="1"/>
+          <B Attr="2"/>
+        </A>.convert
+
+      root.B.addChild(<Other/>.convert)(input) mustEqual
+        <A Attr="01234">
+          <B Attr="1"><Other/></B>
+          <B Attr="2"><Other/></B>
+        </A>.convert
+    }
+
+    "add a child at index" in {
+      val input =
+        <A Attr="01234">
+          <B Attr="1"/>
+          <B Attr="2"/>
+        </A>.convert
+
+      root.B(1).addChild(<Other/>.convert)(input) mustEqual
+        <A Attr="01234">
+          <B Attr="1"/>
+          <B Attr="2"><Other/></B>
+        </A>.convert
+    }
+
+//    "add a child in a nested missing elem" in {
+//      val input =
+//        <A Attr="01234">
+//          <B Attr="1"/>
+//          <B Attr="2"/>
+//        </A>.convert
+//
+//      root.B.C.addChild(<Other/>.convert)(input) mustEqual
+//        <A Attr="01234">
+//          <B Attr="1"><C><Other/></C></B>
+//          <B Attr="2"><C><Other/></C></B>
+//        </A>.convert
+//    }
+
+    "set an elem" in {
+      val input =
+        <A Attr="01234">
         <B/>
       </A>.convert
 
@@ -66,7 +109,7 @@ class XMLPathSpecs extends Specification {
       </A>.convert
     }
 
-    "set a node multiple times" in {
+    "set an elem multiple times" in {
       val input =
         <A Attr="01234">
           <B>B</B>
@@ -80,7 +123,7 @@ class XMLPathSpecs extends Specification {
         </A>.convert
     }
 
-    "set a node in a nested child" in {
+    "set an alem in a nested child" in {
       val input =
         <A Attr="01234">
           <B Attr="b">
@@ -95,6 +138,20 @@ class XMLPathSpecs extends Specification {
           </B>
         </A>.convert
     }
+
+//    "set an elem in a nested missing elem" in {
+//      val input =
+//        <A Attr="01234">
+//          <B Attr="1"/>
+//          <B Attr="2"/>
+//        </A>.convert
+//
+//      root.B.C.set(<Other/>.convert)(input) mustEqual
+//        <A Attr="01234">
+//          <B Attr="1"><Other/></B>
+//          <B Attr="2"><Other/></B>
+//        </A>.convert
+//    }
 
     "modify a node in a nested child" in {
       val input =
