@@ -6,6 +6,7 @@ import sbtrelease.ReleasePlugin.autoImport._
 import sbtrelease.{Versions, _}
 
 enablePlugins(JavaAppPackaging)
+enablePlugins(TutPlugin)
 
 name := "anti-xml"
 
@@ -38,17 +39,6 @@ libraryDependencies ++= Seq(
 )
 
 initialCommands in console := """import com.codecommit.antixml._"""
-
-scalacOptions in Compile in doc <++= (unmanagedSourceDirectories in Compile) map {
-  (usd) =>
-    val scalaSrc: File = (usd filter {
-      _.toString endsWith "scala"
-    }).head
-    Seq(
-      "-sourcepath", scalaSrc.toString,
-      "-doc-source-url", "https://github.com/arktekk/anti-xml/tree/master/src/main/scala€{FILE_PATH}.scala"
-    )
-}
 
 publishMavenStyle := true
 
@@ -109,7 +99,6 @@ def setReleaseVersionCustom(): ReleaseStep = {
     val selected = selectVersion(vs)
     st.log.info("Setting version to '%s'." format selected)
     val useGlobal = Project.extract(st).get(releaseUseGlobalVersion)
-    val versionStr = (if (useGlobal) globalVersionString else versionString) format selected
 
     reapply(Seq(
       if (useGlobal) version in ThisBuild := selected
@@ -128,12 +117,7 @@ git.gitTagToVersionNumber := {
   case _ => None
 }
 
-releaseVersion <<= releaseVersionBump(bumper => {
-  ver =>
-    Version(ver)
-      .map(_.withoutQualifier)
-      .map(_.bump(bumper).string).getOrElse(versionFormatError)
-})
+releaseVersionBump := sbtrelease.Version.Bump.Next
 
 releaseProcess := Seq(
   checkSnapshotDependencies,
@@ -145,7 +129,5 @@ releaseProcess := Seq(
   ReleaseStep(action = Command.process("sonatypeReleaseAll", _), enableCrossBuild = true),
   pushChanges
 )
-
-tutSettings
 
 tutTargetDirectory := baseDirectory.value
