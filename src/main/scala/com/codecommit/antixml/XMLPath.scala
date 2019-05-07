@@ -4,7 +4,7 @@ import monocle.function.{At, Index}
 import monocle.{Optional, Traversal, _}
 
 import scala.language.{dynamics, higherKinds}
-import scalaz.Applicative
+import cats.Applicative
 
 object NodeOptics {
 

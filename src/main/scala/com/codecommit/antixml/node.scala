@@ -31,7 +31,7 @@ package com.codecommit.antixml
 import scala.collection.immutable.{Iterable, Map}
 import scala.language.higherKinds
 import scala.util.Try
-import scalaz.{Applicative, Traverse}
+import cats.Applicative
 
 /**
   * Root of the `Node` ADT, representing the different types of supported XML
@@ -264,7 +264,7 @@ case class Elem(prefix: Option[String], name: String, attrs: Attributes = Attrib
   def traverse[F[_]](f: Node => F[Node])(implicit F: Applicative[F]): F[Elem] = {
     F.map(
       children.foldLeft(F.pure(Group.empty[Node])) {
-        case (acc, cur) => F.apply2(acc, f(cur))(_ :+ _)
+        case (acc, cur) => F.map2(acc, f(cur))(_ :+ _)
       }
     )(mappedChildren => copy(children = mappedChildren))
   }

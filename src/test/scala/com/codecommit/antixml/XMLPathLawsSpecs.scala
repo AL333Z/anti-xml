@@ -6,7 +6,7 @@ import org.specs2.ScalaCheck
 import org.specs2.mutable.Specification
 import org.specs2.scalacheck.Parameters
 
-import scalaz.Equal
+import cats.Eq
 
 class XMLPathLawsSpecs extends Specification with ScalaCheck with XMLGenerators {
 
@@ -34,20 +34,20 @@ class XMLPathLawsSpecs extends Specification with ScalaCheck with XMLGenerators 
       } yield (_: Elem) => elem
     )
 
-  implicit val elemEqual = new Equal[Elem] {
-    override def equal(a1: Elem, a2: Elem): Boolean = a1 == a2
+  implicit val elemEqual = new Eq[Elem] {
+    override def eqv(a1: Elem, a2: Elem): Boolean = a1 == a2
   }
 
-  implicit val nodeEqual = new Equal[Node] {
-    override def equal(a1: Node, a2: Node): Boolean = a1 == a2
+  implicit val nodeEqual = new Eq[Node] {
+    override def eqv(a1: Node, a2: Node): Boolean = a1 == a2
   }
 
-  implicit val groupNodeEqual = new Equal[Group[Node]] {
-    override def equal(a1: Group[Node], a2: Group[Node]): Boolean = a1 == a2
+  implicit val groupNodeEqual = new Eq[Group[Node]] {
+    override def eqv(a1: Group[Node], a2: Group[Node]): Boolean = a1 == a2
   }
 
-  implicit val groupElemEqual = new Equal[Group[Elem]] {
-    override def equal(a1: Group[Elem], a2: Group[Elem]): Boolean = a1 == a2
+  implicit val groupElemEqual = new Eq[Group[Elem]] {
+    override def eqv(a1: Group[Elem], a2: Group[Elem]): Boolean = a1 == a2
   }
 
   val numProcessors = Runtime.getRuntime.availableProcessors
