@@ -10,11 +10,7 @@ enablePlugins(TutPlugin)
 
 name := "anti-xml"
 
-scalaVersion := "2.11.8"
-
-crossScalaVersions := Seq("2.11.8", "2.12.1")
-
-releaseCrossBuild := true
+scalaVersion := "2.12.8"
 
 organization := "com.al333z"
 
@@ -27,18 +23,14 @@ licenses := Seq(("BSD", new URL("https://github.com/arktekk/anti-xml/blob/master
 homepage := Some(url("http://github.com/AL333Z/anti-xml"))
 
 libraryDependencies ++= Seq(
-  "org.scalacheck" %% "scalacheck" % "1.11.6" % "test",
-  "org.specs2" %% "specs2-core" % "3.8.9" % "test",
-  "org.specs2" %% "specs2-scalacheck" % "3.8.9" % "test",
-  "org.specs2" %% "specs2-matcher-extra" % "3.8.9" % "test",
-  "org.scala-lang.modules" %% "scala-xml" % "1.0.6",
+  "org.specs2" %% "specs2-core" % "4.5.1" % Test,
+  "org.specs2" %% "specs2-scalacheck" % "4.5.1" % Test,
+  "org.specs2" %% "specs2-matcher-extra" % "4.5.1" % Test,
+  "org.scala-lang.modules" %% "scala-xml" % "1.2.0",
   "com.github.julien-truffaut" %% "monocle-core" % "1.5.1-cats",
   "com.github.julien-truffaut" %% "monocle-law" % "1.5.1-cats" % Test,
-  "org.scalaz" %% "scalaz-core" % "7.2.8",
   "org.typelevel" %% "cats-core" % "2.0.0-M1"
 )
-
-initialCommands in console := """import com.codecommit.antixml._"""
 
 publishMavenStyle := true
 
