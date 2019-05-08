@@ -30,6 +30,7 @@ package com.codecommit.antixml
 
 import org.specs2.ScalaCheck
 import org.specs2.mutable._
+import scala.language.reflectiveCalls
 
 class ConversionSpecs extends Specification with ScalaCheck {
 

@@ -33,8 +33,9 @@ import org.scalacheck.{Arbitrary, Gen}
 import org.specs2.ScalaCheck
 import org.specs2.matcher.ResultMatchers
 import org.specs2.mutable._
-
 import scala.math.Ordering
+import scala.language.postfixOps
+import scala.language.reflectiveCalls
 
 class ZipperHoleMapSpecs extends Specification with ScalaCheck with ResultMatchers {
 

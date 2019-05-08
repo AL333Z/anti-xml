@@ -46,7 +46,7 @@ import scala.io.Source
  *                thread safety if the specified function reuses SAXParserFactory or SAXParser
  *                instances.
  */
-class SAXParser(factory: (() => JSAXParser) = SAXParser.makeDefaultParser) extends XMLParser {
+class SAXParser(factory: () => JSAXParser = () => SAXParser.makeDefaultParser()) extends XMLParser {
   def fromString(str: String): Elem =
     fromInputSource(new InputSource(new StringReader(str)))
   

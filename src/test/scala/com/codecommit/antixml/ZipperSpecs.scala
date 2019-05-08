@@ -34,6 +34,7 @@ import org.scalacheck._
 import XML._
 import com.codecommit.antixml.Zipper._
 import scala.io.Source
+import scala.language.reflectiveCalls
 
 class ZipperSpecs extends Specification with ScalaCheck with XMLGenerators with LowPrioritiyImplicits {
 

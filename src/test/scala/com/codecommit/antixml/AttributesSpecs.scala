@@ -32,6 +32,7 @@ import org.scalacheck._
 import org.specs2.ScalaCheck
 import org.specs2.mutable._
 import org.specs2.scalacheck.Parameters
+import scala.language.reflectiveCalls
 
 import scala.collection.mutable.LinkedHashMap
 

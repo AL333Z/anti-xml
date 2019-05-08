@@ -32,6 +32,7 @@ import org.specs2.mutable._
 import org.specs2.ScalaCheck
 import org.scalacheck._
 import org.specs2.matcher.ResultMatchers
+import scala.language.reflectiveCalls
 
 class GroupSpecs extends Specification with ScalaCheck with XMLGenerators with UtilGenerators with LowPrioritiyImplicits with ResultMatchers {
   import XML._

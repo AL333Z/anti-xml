@@ -31,6 +31,7 @@ package com.codecommit.antixml
 import org.scalacheck._
 import scala.io.Source
 import java.lang.String
+import scala.language.postfixOps
 
 trait XMLGenerators {
   import Arbitrary.arbitrary
