@@ -40,187 +40,14 @@ class GroupSpecs extends Specification with ScalaCheck with XMLGenerators with U
   lazy val numProcessors = Runtime.getRuntime.availableProcessors()
   implicit val params = set(workers = numProcessors, maxSize = 15)      // doesn't need to be so large
 
-  "shallow selection on Group" should {
-    "find an immediate descendant" in {
-      val ns = fromString("<parent><parent/></parent>")
-      ns \ "parent" mustEqual Group(elem("parent"))
-    }
-    
-    "be referentially transparent" in {
-      val ns = fromString("<parent><parent/></parent>")
-      ns \ "parent" mustEqual Group(elem("parent"))
-      ns \ "parent" mustEqual Group(elem("parent"))
-    }
-    
-    "find a subset of nodes" in {
-      val ns = fromString("<parent>Some<a/>text<b/>to\nreally<c/>confuse<a/><b/><d/>things<e/><a/><f/></parent>")
-      val result = Group(elem("a"), elem("a"), elem("a"))
-      ns \ "a" mustEqual result
-    }
-    
-    // currently takes a lot of time and heap, but doesn't produce any valuable results
-    /* "be fully specified by flatMap / collect" in prop { (ns: Group[Node], selector: Selector[Node]) =>
-      val result = ns \ selector
-      val expected = ns flatMap {
-        case Elem(_, _, _, children) => children collect selector
-        case _ => Group()
-      }
-      result.toList mustEqual expected.toList
-    } */
-    
-    "work with an alternative selector" in {
-      val ns = fromString("<parent>Some text<sub1><target>sub1</target></sub1><target>top<sub1><target>top1</target><target>top2</target></sub1><target>top3-outer</target></target><phoney><target>phoney</target></phoney>More text<target>outside</target></parent>")
-      val strs = ns \ text
-      strs mustEqual Vector("Some text", "More text")
-    }
-  }
-  
-  "deep selection on Group" should {
-    "find an immediate descendant" in {
-      val ns = fromString("<parent><parent/></parent>")
-      ns \\ "parent" mustEqual Group(elem("parent"))
-    }
-    
-    "find a subset of nodes" in {
-      val ns = fromString("<parent>Some<a/>text<b/>to\nreally<c/>confuse<a/><b/><d/>things<e/><a/><f/></parent>")
-      val result = Group(elem("a"), elem("a"), elem("a"))
-      ns \\ "a" mustEqual result
-    }
-    
-    "find and linearize a deep subset of nodes" in {
-      val ns = fromString("<parent>" +
-        "Some text" +
-        "<sub1><target>sub1</target></sub1>" +
-        "<target>top<sub1><target>top1</target><target>top2</target></sub1><target>top3-outer</target></target>" +
-        "<phoney><target>phoney</target></phoney>" + 
-        "More text" +
-        "<target>outside</target>" +
-        "</parent>")
-
-      val result = fromString("<parent>" +
-        "<target>sub1</target>" +
-        "<target>top<sub1><target>top1</target><target>top2</target></sub1><target>top3-outer</target></target>" +
-        "<target>top1</target>" +
-        "<target>top2</target>" +
-        "<target>top3-outer</target>" +
-        "<target>phoney</target>" +
-        "<target>outside</target>" +
-        "</parent>")
-      ns \\ "target" mustEqual result.children
-    }
-    
-    // currently takes a lot of time and heap, but doesn't produce any valuable results
-    /* "be fully specified by recursive flatMap / collect" in prop { (ns: Group[Node], selector: Selector[Node]) =>
-      def loop(ns: Group[Node]): Group[Node] = {
-        val recursive = ns flatMap {
-          case Elem(_, _, _, children) => loop(children)
-          case _ => Group()
-        }
-        
-        val shallow = ns flatMap {
-          case Elem(_, _, _, children) => children collect selector
-          case _ => Group()
-        }
-        
-        shallow ++ recursive
-      }
-      val result = ns \\ selector
-      val expected = loop(ns)
-      
-      result.toList mustEqual expected.toList
-    } */
-    
-    "work with an alternative selector" in {
-      val ns = fromString("<parent>" +
-        "Some text" +
-        "<sub1><target>sub1</target></sub1>" + 
-        "<target>top<sub1><target>top1</target><target>top2</target></sub1><target>top3-outer</target></target>" +
-        "<phoney><target>phoney</target></phoney>" +
-        "More text" +
-        "<target>outside</target>" +
-        "</parent>")
-      val strs = ns \\ text
-      strs mustEqual Vector("Some text", "sub1", "top", "top1", "top2", "top3-outer", "phoney", "More text", "outside")
-    }
-  }
-  
-  "short-circuit deep selection on Group" should {
-
-    "find an immediate descendant" in {
-      val ns = fromString("<parent><parent/></parent>")
-      ns \\! "parent" mustEqual Group(elem("parent"))
-    }
-    
-    "find a subset of nodes" in {
-      val ns = fromString("<parent>Some<a/>text<b/>to\nreally<c/>confuse<a/><b/><d/>things<e/><a/><f/></parent>")
-      val result = Group(elem("a"), elem("a"), elem("a"))
-      ns \\! "a" mustEqual result
-    }
-    
-    "skip descendants of matching nodes in" in {
-      val ns = fromString("<parent>" +
-        "Some text" +
-        "<sub1><target>sub1</target></sub1>" +
-        "<target>top<sub1><target>top1</target><target>top2</target></sub1><target>top3-outer</target></target>" +
-        "<phoney><target>phoney</target></phoney>" + 
-        "More text" +
-        "<target>outside</target>" +
-        "</parent>")
-
-      val result = fromString("<parent>" +
-        "<target>sub1</target>" +
-        "<target>top<sub1><target>top1</target><target>top2</target></sub1><target>top3-outer</target></target>" +
-        "<target>phoney</target>" +
-        "<target>outside</target>" +
-        "</parent>")
-      ns \\! "target" mustEqual result.children
-    }
-        
-   }
-   
-  "select on a Group" should {
-
-    "find a top level node" in {
-      val ns = fromString("<parent><parent/></parent>")
-      (ns select "parent") mustEqual Group(ns)
-    }
-    
-    "find a subset of nodes" in {
-      val ns = fromString("<TOP><a><x1/></a><b><y1/></b><a><x2/></a><b><y2/></b></TOP>").children
-      val result = fromString("<TOP><a><x1/></a><a><x2/></a></TOP>").children
-      ns select "a" mustEqual result
-    }
-    
-    "only match the top level" in {
-      val ns = fromString("<TOP><a /><b><a /></b><a><a /></a></TOP>").children
-      val result = fromString("<TOP><a /><a><a /></a></TOP>").children
-      ns select "a" mustEqual result      
-    }
-    
-  }
-  
   "utility methods on Group" >> {
     implicit val arbInt = Arbitrary(Gen.choose(0, 10))
 
-    "map should produce a Group (not a Zipper)" in {
-      val group = <parent>child</parent>.convert.children
-      validate[Group[Node]](group)
-      validate[Group[Node]](group map identity)
-    }
-    
     "map with non-Node result should produce an IndexedSeq" in {
       val group = Group(<parent>child</parent>.convert)
       val res = group map { _.name }
       validate[scala.collection.immutable.IndexedSeq[String]](res)
       res mustEqual Vector("parent")
-    }
-    
-    "identity collect should return self" in prop { (xml: Group[Node], n: Int) =>
-      val func = (0 until n).foldLeft(identity: Group[Node] => Group[Node]) { (g, _) =>
-        g andThen { _ collect { case e => e } }
-      }
-      
-      func(xml) mustEqual xml
     }
     
     "foreach should traverse group" in prop { (xml: Group[Node]) =>
@@ -268,17 +95,6 @@ class GroupSpecs extends Specification with ScalaCheck with XMLGenerators with U
         Vector(cfmwi:_*) mustEqual Vector(equiv:_*),
         cfmwi.length mustEqual expectedLength
       ) must beSuccessful
-    }
-  }
-  
-  "Group.matches" should {
-    "never produce false negatives for Strings" in prop { (xml: Group[Node]) =>
-      val allElems = xml \\ anyElem
-      allElems forall {e => xml.matches(e.name)} must beTrue
-    }
-    "never produce false negatives for Hashes" in prop { (xml: Group[Node]) =>
-      val allElems = xml \\ anyElem
-      allElems forall {e => xml.matches(Group.bloomFilterHash(e.name))} must beTrue
     }
   }
 

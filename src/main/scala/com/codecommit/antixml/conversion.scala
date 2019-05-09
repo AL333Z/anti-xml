@@ -140,8 +140,8 @@ object XMLConvertable extends SecondPrecedenceConvertables {
     }
   }
   
-  implicit object TextConvertable extends XMLConvertable[xml.Atom[String], Text] {
-    def apply(t: xml.Atom[String]) = Text(t.text)
+  implicit object TextConvertable extends XMLConvertable[xml.Atom[_], Text] {
+    def apply(t: xml.Atom[_]) = Text(t.text)
   }
   
   implicit object EntityRefConvertable extends XMLConvertable[xml.EntityRef, EntityRef] {
@@ -154,7 +154,7 @@ private[antixml] sealed trait SecondPrecedenceConvertables extends ThirdPreceden
   implicit object NodeConvertable extends XMLConvertable[xml.Node, Node] {
     def apply(n: xml.Node) = n match {
       case e: xml.Elem => ElemConvertable(e)
-      case a: xml.Atom[String] => TextConvertable(a)
+      case a: xml.Atom[_] => TextConvertable(a)
       case r: xml.EntityRef => EntityRefConvertable(r)
       case g: xml.Group => sys.error("xml.Group should never have been a Node; there is no sane conversion")
     }

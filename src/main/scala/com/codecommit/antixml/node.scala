@@ -28,10 +28,11 @@
 
 package com.codecommit.antixml
 
-import scala.collection.immutable.{Iterable, Map}
+import cats.Applicative
+
+import scala.collection.immutable.Map
 import scala.language.higherKinds
 import scala.util.Try
-import cats.Applicative
 
 /**
   * Root of the `Node` ADT, representing the different types of supported XML
@@ -80,7 +81,7 @@ private[antixml] object Node {
 
   /* http://www.w3.org/TR/xml/#NT-Char */
   private[this] val CharRegex =
-  """[\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\x{10000}-\x{10FFFF}]*""".r
+    """[\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\x{10000}-\x{10FFFF}]*""".r
 
   def hasOnlyValidChars(value: String) = CharRegex.pattern.matcher(value).matches
 
@@ -154,7 +155,7 @@ case class ProcInstr(target: String, data: String) extends Node {
   * }}}
   * TODO: Consider making Elem not a case class and handle thing a different way.
   */
-case class Elem(prefix: Option[String], name: String, attrs: Attributes = Attributes(), namespaces: NamespaceBinding = NamespaceBinding.empty, override val children: Group[Node] = Group.empty) extends Node with Selectable[Elem] {
+case class Elem(prefix: Option[String], name: String, attrs: Attributes = Attributes(), namespaces: NamespaceBinding = NamespaceBinding.empty, override val children: Group[Node] = Group.empty) extends Node {
   //TODO: adding the empty namespacebinding is a hack because we cannot know which ns the attributes are supposed to be ahead of time.
   if (!Elem.isValidName(name)) {
     throw new IllegalArgumentException("Illegal element name, '" + name + "'")
