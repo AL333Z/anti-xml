@@ -3,7 +3,7 @@ import sbt.Keys._
 import sbt._
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import sbtrelease.ReleasePlugin.autoImport._
-import sbtrelease.{Versions, _}
+import sbtrelease.Versions
 
 enablePlugins(JavaAppPackaging)
 enablePlugins(TutPlugin)
@@ -43,6 +43,10 @@ publishTo := {
   if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
   else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
+
+// ignore docs
+sources in (Compile,doc) := Seq.empty
+publishArtifact in packageDoc := false
 
 pomExtra :=
   <scm>
