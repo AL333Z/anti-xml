@@ -113,7 +113,7 @@ git.gitTagToVersionNumber := {
   case _ => None
 }
 
-releaseVersionBump := sbtrelease.Version.Bump.Next
+releaseVersionBump := sbtrelease.Version.Bump.Bugfix
 
 releaseProcess := Seq(
   checkSnapshotDependencies,
