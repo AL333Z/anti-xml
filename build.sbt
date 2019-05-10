@@ -44,48 +44,19 @@ publishTo := {
   else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
-// ignore docs
-sources in (Compile,doc) := Seq.empty
-publishArtifact in packageDoc := false
+publishConfiguration := publishConfiguration.value.withOverwrite(true)
+publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true)
 
-pomExtra :=
-  <scm>
-    <url>http://github.com/AL333Z/anti-xml</url>
-    <connection>scm:git:git://github.com/AL333Z/anti-xml.git</connection>
-    <developerConnection>scm:git:git@github.com:AL333Z/anti-xml.git</developerConnection>
-  </scm>
-    <developers>
-      <developer>
-        <id>djspiewak</id>
-        <name>Daniel Spiewak</name>
-        <url>http://twitter.com/djspiewak</url>
-      </developer>
-      <developer>
-        <name>Erlend Hamnaberg</name>
-        <url>http://twitter.com/hamnis</url>
-      </developer>
-    </developers>
-    <contributors>
-      <contributor>
-        <name>Trygve Laugstøl</name>
-        <url>http://twitter.com/trygvis</url>
-      </contributor>
-      <contributor>
-        <name>Daniel Beskin</name>
-      </contributor>
-      <contributor>
-        <name>Joshua Arnold</name>
-      </contributor>
-      <contributor>
-        <name>Martin Kneissl</name>
-      </contributor>
-      <contributor>
-        <name>Erik Engbrecht</name>
-      </contributor>
-      <contributor>
-        <name>Heikki Vesalainen</name>
-      </contributor>
-    </contributors>
+scmInfo := Some(ScmInfo(
+  url("http://github.com/AL333Z/anti-xml"),
+  "scm:git:git://github.com/AL333Z/anti-xml.git"
+))
+
+homepage := scmInfo.value.map(_.browseUrl)
+
+developers := List(
+  Developer(id = "djspiewak", name = "Daniel Spiewak", email = null, url = url("http://twitter.com/djspiewak"))
+)
 
 val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
 
@@ -121,8 +92,8 @@ releaseProcess := Seq(
   runClean,
   setReleaseVersionCustom(),
   tagRelease,
-  ReleaseStep(action = Command.process("publishSigned", _), enableCrossBuild = true),
-  ReleaseStep(action = Command.process("sonatypeReleaseAll", _), enableCrossBuild = true),
+  ReleaseStep(action = Command.process("publishSigned", _)),
+  ReleaseStep(action = Command.process("sonatypeReleaseAll", _)),
   pushChanges
 )
 
