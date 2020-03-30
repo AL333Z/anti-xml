@@ -99,5 +99,9 @@ class XMLSerializerSpecs extends Specification {
       val xml2 = XML.fromString(writer.toString)
       xml2 shouldEqual(xml)
     }
+
+    "serialize attributes with special xml characters" in {
+      fromString("<test attr=\"&#xA;&#xD;&#x9;&amp;&lt; test\">\n<beef/>\n\t\n</test>").toString mustEqual "<test attr=\"&#xA;&#xD;&#x9;&amp;&lt; test\">\n<beef/>\n\t\n</test>"
+    }
   }
 }

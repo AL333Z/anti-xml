@@ -98,16 +98,22 @@ private[antixml] object Node {
   def quoteAttribute(value: String) = {
     if (value.contains("\"")) {
       "'" + (value flatMap {
+        case '\n' => "&#xA;"
+        case '\r' => "&#xD;"
         case '&' => "&amp;"
         case '<' => "&lt;"
         case '\'' => "&apos;"
+        case '\t' => "&#x9;"
         case c => List(c)
       }) + "'"
     } else {
       "\"" + (value flatMap {
+        case '\n' => "&#xA;"
+        case '\r' => "&#xD;"
         case '&' => "&amp;"
         case '<' => "&lt;"
         case '"' => "&quot;"
+        case '\t' => "&#x9;"
         case c => List(c)
       }) + "\""
     }
